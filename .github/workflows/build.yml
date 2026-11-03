@@ -321,3 +321,30 @@ jobs:
         with:
           name: gitleaks-results
           path: gitleaks-results.json
+
+  # SAST (Semgrep). Scans the code of every service (Java, Go, Python, JS/TS)
+  # plus the Dockerfiles, k8s manifests and workflows with Semgrep's p/default
+  # ruleset. Runs in parallel with build/tests and fails the run on any finding
+  # (--error). Findings are printed in the log and saved as JSON in the
+  # `semgrep-results` artifact.
+  sast:
+    needs: build-context
+    runs-on: ubuntu-latest
+    name: sast (semgrep)
+    permissions:
+      contents: read
+    container:
+      image: semgrep/semgrep:1.183.0
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run semgrep
+        run: semgrep scan --config p/default --metrics off --error --json-output=semgrep-results.json
+
+      - name: Upload semgrep report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: semgrep-results
+          path: semgrep-results.json
