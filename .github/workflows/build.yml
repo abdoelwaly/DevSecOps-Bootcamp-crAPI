@@ -348,3 +348,30 @@ jobs:
         with:
           name: semgrep-results
           path: semgrep-results.json
+
+  # Dockerfile scanning (Checkov). Checks the Dockerfiles every service image is
+  # built from (non-root USER, HEALTHCHECK, no apt, ...). Checkov can only scan
+  # built images with a paid Prisma Cloud key, so this scans the image
+  # definitions instead. Runs in parallel with build/tests and fails the run on
+  # any failed check; the JSON report is the `checkov-results` artifact.
+  dockerfile-scan:
+    needs: build-context
+    runs-on: ubuntu-latest
+    name: dockerfile-scan (checkov)
+    permissions:
+      contents: read
+    container:
+      image: bridgecrew/checkov:3.4.3
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run checkov
+        run: checkov -d . --framework dockerfile --quiet --compact -o cli -o json --output-file-path console,checkov-results.json
+
+      - name: Upload checkov report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: checkov-results
+          path: checkov-results.json
